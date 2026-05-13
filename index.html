@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pequeno Explorador Quest</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif}
+body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:10px}
+#wrap{background:#1a0e05;border-radius:16px;overflow:hidden;position:relative;width:100%;max-width:620px;margin:0 auto}
+canvas{display:block;width:100%}
+#ui{position:absolute;top:0;left:0;right:0;pointer-events:none;z-index:5}
+#hud{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(20,10,0,.82);border-bottom:2px solid #8B6914}
+#hud .hb{background:rgba(255,220,80,.13);border:1px solid #8B6914;border-radius:50px;padding:4px 13px;color:#FFD700;font-size:13px;font-weight:700}
+#mission{text-align:center;padding:6px 10px;background:rgba(20,10,0,.75);border-bottom:1px solid #5a3a0a;color:#FFE88A;font-size:14px;font-weight:700;cursor:pointer}
+#mission small{display:block;color:rgba(255,220,100,.6);font-size:10px;font-weight:400;margin-top:1px}
+.screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;background:rgba(10,5,0,.9)}
+.panel{background:linear-gradient(160deg,#3d1e00,#1a0c00);border:3px solid #8B6914;border-radius:20px;padding:1.6rem 2rem;text-align:center;max-width:400px;width:92%;box-shadow:0 0 40px rgba(255,180,0,.18)}
+.panel h2{color:#FFD700;font-size:20px;font-weight:800;margin-bottom:6px}
+.panel p{color:#FFCF80;font-size:12px;line-height:1.6;margin-bottom:1rem}
+.gbtn{background:linear-gradient(135deg,#c8860a,#f5a623);border:none;color:#fff;font-size:15px;font-weight:800;padding:11px 30px;border-radius:50px;cursor:pointer;transition:transform .1s}
+.gbtn:hover{transform:scale(1.05)}
+.ptag{display:inline-block;border-radius:50px;padding:2px 9px;font-size:10px;font-weight:700;margin:2px;border:1px solid rgba(255,255,255,.2)}
+#map-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;background:rgba(10,5,0,.92)}
+#map-panel{background:linear-gradient(160deg,#3d1e00,#1a0800);border:3px solid #8B6914;border-radius:20px;padding:1.4rem 1.6rem;max-width:500px;width:95%;text-align:center}
+#map-panel h2{color:#FFD700;font-size:18px;font-weight:800;margin-bottom:12px}
+.map-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.map-node{background:rgba(255,200,80,.08);border:2px solid #5a3a0a;border-radius:12px;padding:8px 6px;cursor:default;transition:all .15s;opacity:.45}
+.map-node.unlocked{opacity:1;border-color:#8B6914;cursor:pointer}
+.map-node.unlocked:hover{background:rgba(255,200,80,.18);transform:scale(1.04)}
+.map-node.done{border-color:#4caf50;background:rgba(76,175,80,.15)}
+.map-node .ni{font-size:26px;display:block;margin-bottom:3px}
+.map-node .nl{color:#FFD700;font-size:10px;font-weight:700;display:block}
+.map-node .ns{color:#aaa;font-size:9px;display:block}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="ui">
+    <div id="hud" style="display:none">
+      <div class="hb" id="h-phase">Fase 1</div>
+      <div class="hb" id="h-score">⭐ 0</div>
+      <div class="hb" id="h-lives">❤❤❤</div>
+      <div class="hb" id="h-prog">0/8</div>
+    </div>
+    <div id="mission" style="display:none" onclick="repeatWord()">
+      <span id="m-text">...</span>
+      <small>Toque aqui para ouvir novamente</small>
+    </div>
+  </div>
+  <canvas id="c"></canvas>
+
+  <div class="screen" id="start-s">
+    <div class="panel">
+      <div style="font-size:52px;margin-bottom:6px">🧭</div>
+      <h2>Pequeno Explorador Quest</h2>
+      <p>Uma aventura com <strong style="color:#FFD700">6 fases</strong> para aprender inglês!<br>Blocos com palavras caem do céu — mova o cesto e pegue apenas o bloco certo.<br><br>Use <strong style="color:#FFD700">← →</strong> ou toque na tela para mover.</p>
+      <div style="margin-bottom:1rem;display:flex;flex-wrap:wrap;justify-content:center;gap:4px">
+        <span class="ptag" style="background:#c0392b22;color:#ff8a80;border-color:#c0392b">🎨 Cores</span>
+        <span class="ptag" style="background:#1a237e22;color:#82b1ff;border-color:#1a237e">🔤 Letras</span>
+        <span class="ptag" style="background:#1b5e2022;color:#69f0ae;border-color:#1b5e20">🔢 Números</span>
+        <span class="ptag" style="background:#4a148c22;color:#ea80fc;border-color:#4a148c">🐾 Animais</span>
+        <span class="ptag" style="background:#e65100aa;color:#ffd180;border-color:#e65100">🧸 Objetos</span>
+        <span class="ptag" style="background:#006064aa;color:#84ffff;border-color:#006064">💬 Frases</span>
+      </div>
+      <button class="gbtn" id="start-btn">🗺️ Ver Mapa!</button>
+    </div>
+  </div>
+
+  <div id="map-wrap" style="display:none">
+    <div id="map-panel">
+      <h2>🗺️ Roteiro da Expedição</h2>
+      <div class="map-grid" id="map-grid"></div>
+      <p style="color:#aaa;font-size:11px">Complete cada fase para desbloquear a próxima!</p>
+    </div>
+  </div>
+
+  <div class="screen" id="phase-s" style="display:none">
+    <div class="panel">
+      <div id="ps-icon" style="font-size:50px;margin-bottom:6px"></div>
+      <div id="ps-num" style="background:#8B6914;color:#fff;border-radius:50px;padding:2px 14px;font-size:11px;font-weight:700;display:inline-block;margin-bottom:6px"></div>
+      <h2 id="ps-title"></h2>
+      <p id="ps-desc"></p>
+      <div id="ps-words" style="display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-bottom:1rem"></div>
+      <button class="gbtn" id="phase-btn">Vamos lá! 🎯</button>
+    </div>
+  </div>
+
+  <div class="screen" id="win-s" style="display:none">
+    <div class="panel">
+      <div style="font-size:60px;margin-bottom:6px">🏅</div>
+      <h2 style="color:#FFD700;font-size:22px">Mestre Explorador!</h2>
+      <div id="ws-stars" style="font-size:28px;margin:6px 0"></div>
+      <p id="ws-msg" style="color:#FFCF80"></p>
+      <p style="color:#aaa;font-size:11px;margin-bottom:1rem">O Pequeno Explorador prova que ao unir o rigor de um glossário linguístico à interface engajadora de um jogo, não estamos apenas ensinando palavras — estamos destrancando o desejo contínuo de descobrir novos mundos.</p>
+      <button class="gbtn" id="win-btn">🔄 Jogar de Novo</button>
+    </div>
+  </div>
+
+  <div class="screen" id="over-s" style="display:none">
+    <div class="panel">
+      <div style="font-size:50px;margin-bottom:6px">😢</div>
+      <h2 style="color:#ff5252">Não desista!</h2>
+      <p>Você quase conseguiu, explorador! Tente de novo!</p>
+      <button class="gbtn" id="over-btn">💪 Tentar Novamente</button>
+    </div>
+  </div>
+
+  <div class="screen" id="phase-win-s" style="display:none">
+    <div class="panel">
+      <div id="pw-icon" style="font-size:50px;margin-bottom:6px"></div>
+      <h2 id="pw-title" style="color:#69f0ae">Fase Concluída!</h2>
+      <div id="pw-stars" style="font-size:28px;margin:6px 0"></div>
+      <p id="pw-msg" style="color:#FFCF80;margin-bottom:1rem"></p>
+      <button class="gbtn" id="pw-btn">Continuar 🗺️</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PHASES=[
+  {id:1,icon:"🌈",label:"Fase 1",title:"Portal das Cores",
+   desc:"Associação visual: veja a cor e aprenda a palavra em inglês!",
+   semantic:"Abstração Visual",skill:"Associação Objeto-Cor",
+   speed:1.7,spawn:95,needed:8,
+   words:[
+    {en:"Red",pt:"Vermelho",ipa:"/rɛd/",ex:"The apple is red.",color:"#E53935",tc:"#fff"},
+    {en:"Blue",pt:"Azul",ipa:"/bluː/",ex:"The sky is blue.",color:"#1E88E5",tc:"#fff"},
+    {en:"Green",pt:"Verde",ipa:"/ɡriːn/",ex:"The tree is green.",color:"#43A047",tc:"#fff"},
+    {en:"Yellow",pt:"Amarelo",ipa:"/ˈjɛloʊ/",ex:"The sun is yellow.",color:"#FDD835",tc:"#333"},
+    {en:"Orange",pt:"Laranja",ipa:"/ˈɒrɪndʒ/",ex:"I like orange!",color:"#FB8C00",tc:"#fff"},
+    {en:"Purple",pt:"Roxo",ipa:"/ˈpɜːrpəl/",ex:"The flower is purple.",color:"#8E24AA",tc:"#fff"},
+    {en:"Pink",pt:"Rosa",ipa:"/pɪŋk/",ex:"Her dress is pink.",color:"#E91E8C",tc:"#fff"},
+    {en:"White",pt:"Branco",ipa:"/waɪt/",ex:"The cloud is white.",color:"#F5F5F5",tc:"#333"},
+    {en:"Black",pt:"Preto",ipa:"/blæk/",ex:"The cat is black.",color:"#212121",tc:"#fff"},
+    {en:"Brown",pt:"Marrom",ipa:"/braʊn/",ex:"The dog is brown.",color:"#6D4C41",tc:"#fff"},
+   ]},
+  {id:2,icon:"🔤",label:"Fase 2",title:"Mundo das Letras",
+   desc:"Fonética básica: as vogais são as engrenagens da pronúncia!",
+   semantic:"Fonética Básica",skill:"Consciência Fonológica e IPA",
+   speed:2.1,spawn:82,needed:8,
+   words:[
+    {en:"A",pt:"Vogal A",ipa:"/eɪ/",ex:"A is for Apple!",color:"#c62828",tc:"#fff"},
+    {en:"E",pt:"Vogal E",ipa:"/iː/",ex:"E is for Elephant!",color:"#1565c0",tc:"#fff"},
+    {en:"I",pt:"Vogal I",ipa:"/aɪ/",ex:"I is for Ice!",color:"#2e7d32",tc:"#fff"},
+    {en:"O",pt:"Vogal O",ipa:"/oʊ/",ex:"O is for Orange!",color:"#e65100",tc:"#fff"},
+    {en:"U",pt:"Vogal U",ipa:"/juː/",ex:"U is for Umbrella!",color:"#4a148c",tc:"#fff"},
+    {en:"Apple",pt:"Maçã",ipa:"/ˈæpəl/",ex:"The apple is red.",color:"#c62828",tc:"#fff"},
+    {en:"Egg",pt:"Ovo",ipa:"/ɛɡ/",ex:"I eat an egg.",color:"#f9a825",tc:"#333"},
+    {en:"Igloo",pt:"Iglu",ipa:"/ˈɪɡluː/",ex:"The igloo is cold.",color:"#0288d1",tc:"#fff"},
+    {en:"Open",pt:"Aberto",ipa:"/ˈoʊpən/",ex:"Open the door!",color:"#558b2f",tc:"#fff"},
+    {en:"Under",pt:"Embaixo",ipa:"/ˈʌndər/",ex:"Under the table.",color:"#6d4c41",tc:"#fff"},
+   ]},
+  {id:3,icon:"🔢",label:"Fase 3",title:"Contagem Mágica",
+   desc:"Lógica sequencial com ritmo musical! Memorize os números!",
+   semantic:"Lógica Sequencial",skill:"Memorização Rítmica e Escalada",
+   speed:2.5,spawn:70,needed:10,
+   words:[
+    {en:"One",pt:"Um",ipa:"/wʌn/",ex:"I have one book.",color:"#c62828",tc:"#fff"},
+    {en:"Two",pt:"Dois",ipa:"/tuː/",ex:"I have two cats.",color:"#1565c0",tc:"#fff"},
+    {en:"Three",pt:"Três",ipa:"/θriː/",ex:"I see three birds.",color:"#2e7d32",tc:"#fff"},
+    {en:"Four",pt:"Quatro",ipa:"/fɔːr/",ex:"I have four fish.",color:"#e65100",tc:"#fff"},
+    {en:"Five",pt:"Cinco",ipa:"/faɪv/",ex:"Give me five!",color:"#6a1b9a",tc:"#fff"},
+    {en:"Six",pt:"Seis",ipa:"/sɪks/",ex:"I count six stars.",color:"#00838f",tc:"#fff"},
+    {en:"Seven",pt:"Sete",ipa:"/ˈsɛvən/",ex:"Seven days a week.",color:"#ad1457",tc:"#fff"},
+    {en:"Eight",pt:"Oito",ipa:"/eɪt/",ex:"I have eight crayons.",color:"#4e342e",tc:"#fff"},
+    {en:"Nine",pt:"Nove",ipa:"/naɪn/",ex:"Nine flowers.",color:"#37474f",tc:"#fff"},
+    {en:"Ten",pt:"Dez",ipa:"/tɛn/",ex:"Let's count to ten!",color:"#f9a825",tc:"#333"},
+   ]},
+  {id:4,icon:"🐾",label:"Fase 4",title:"Expedição Animal",
+   desc:"Taxonomia ambiental: explore o mundo vivo com os animais!",
+   semantic:"Taxonomia Ambiental",skill:"Categorização e Nomenclatura",
+   speed:3.0,spawn:60,needed:10,
+   words:[
+    {en:"Dog",pt:"Cachorro",ipa:"/dɒɡ/",ex:"The dog is barking.",color:"#8d6e63",tc:"#fff",em:"🐶"},
+    {en:"Cat",pt:"Gato",ipa:"/kæt/",ex:"The cat is sleeping.",color:"#78909c",tc:"#fff",em:"🐱"},
+    {en:"Lion",pt:"Leão",ipa:"/ˈlaɪən/",ex:"The lion is strong.",color:"#ffa000",tc:"#fff",em:"🦁"},
+    {en:"Elephant",pt:"Elefante",ipa:"/ˈɛlɪfənt/",ex:"The elephant is grey.",color:"#546e7a",tc:"#fff",em:"🐘"},
+    {en:"Fish",pt:"Peixe",ipa:"/fɪʃ/",ex:"The fish is in water.",color:"#0288d1",tc:"#fff",em:"🐟"},
+    {en:"Bird",pt:"Pássaro",ipa:"/bɜːrd/",ex:"The bird can fly.",color:"#0097a7",tc:"#fff",em:"🐦"},
+    {en:"Rabbit",pt:"Coelho",ipa:"/ˈræbɪt/",ex:"The rabbit is white.",color:"#f48fb1",tc:"#333",em:"🐰"},
+    {en:"Tiger",pt:"Tigre",ipa:"/ˈtaɪɡər/",ex:"The tiger is orange.",color:"#e65100",tc:"#fff",em:"🐯"},
+    {en:"Frog",pt:"Sapo",ipa:"/frɒɡ/",ex:"The frog is green.",color:"#558b2f",tc:"#fff",em:"🐸"},
+    {en:"Duck",pt:"Pato",ipa:"/dʌk/",ex:"The duck is yellow.",color:"#f9a825",tc:"#333",em:"🦆"},
+   ]},
+  {id:5,icon:"🧸",label:"Fase 5",title:"Baú de Objetos",
+   desc:"Categorize objetos do seu mundo: Casa, Escola e Brinquedos!",
+   semantic:"Taxonomia Ambiental",skill:"Categorização e Nomenclatura",
+   speed:3.4,spawn:52,needed:8,
+   words:[
+    {en:"Table",pt:"Mesa",ipa:"/ˈteɪbəl/",ex:"The table is in the kitchen.",color:"#5d4037",tc:"#fff",em:"🪑"},
+    {en:"Bed",pt:"Cama",ipa:"/bɛd/",ex:"I sleep in my bed.",color:"#7b1fa2",tc:"#fff",em:"🛏️"},
+    {en:"Book",pt:"Livro",ipa:"/bʊk/",ex:"I read a book.",color:"#1565c0",tc:"#fff",em:"📚"},
+    {en:"Pencil",pt:"Lápis",ipa:"/ˈpɛnsəl/",ex:"Use your pencil.",color:"#f9a825",tc:"#333",em:"✏️"},
+    {en:"Ruler",pt:"Régua",ipa:"/ˈruːlər/",ex:"The ruler is long.",color:"#00838f",tc:"#fff",em:"📏"},
+    {en:"Ball",pt:"Bola",ipa:"/bɔːl/",ex:"Kick the ball!",color:"#2e7d32",tc:"#fff",em:"⚽"},
+    {en:"Doll",pt:"Boneca",ipa:"/dɒl/",ex:"My doll is pink.",color:"#ad1457",tc:"#fff",em:"🪆"},
+    {en:"Bag",pt:"Mochila",ipa:"/bæɡ/",ex:"My bag is blue.",color:"#37474f",tc:"#fff",em:"🎒"},
+   ]},
+  {id:6,icon:"💬",label:"Fase 6",title:"Acampamento de Conversação",
+   desc:"Socialização prática: aplique as frases do dia a dia!",
+   semantic:"Socialização Prática",skill:"Aplicação Sintática Contextual",
+   speed:3.8,spawn:44,needed:8,
+   words:[
+    {en:"Hello",pt:"Olá",ipa:"/həˈloʊ/",ex:"Hello, my friend!",color:"#c62828",tc:"#fff",em:"👋"},
+    {en:"Good morning",pt:"Bom dia",ipa:"/ɡʊd ˈmɔːrnɪŋ/",ex:"Good morning, teacher!",color:"#1565c0",tc:"#fff",em:"🌅"},
+    {en:"How are you",pt:"Como você está",ipa:"/haʊ ɑːr juː/",ex:"Hi, how are you?",color:"#2e7d32",tc:"#fff",em:"😊"},
+    {en:"Thank you",pt:"Obrigado",ipa:"/θæŋk juː/",ex:"Thank you very much!",color:"#e65100",tc:"#fff",em:"🙏"},
+    {en:"Please",pt:"Por favor",ipa:"/pliːz/",ex:"Water, please?",color:"#6a1b9a",tc:"#fff",em:"✨"},
+    {en:"Goodbye",pt:"Tchau",ipa:"/ɡʊdˈbaɪ/",ex:"Goodbye, see you!",color:"#00838f",tc:"#fff",em:"👋"},
+    {en:"Yes",pt:"Sim",ipa:"/jɛs/",ex:"Yes, I can!",color:"#2e7d32",tc:"#fff",em:"✅"},
+    {en:"No",pt:"Não",ipa:"/noʊ/",ex:"No, thank you.",color:"#c62828",tc:"#fff",em:"❌"},
+   ]},
+];
+
+const CW=620,CH=460,BW=108,BH=58,BR=11,BKFW=106,BKFH=46;
+let G={},keys={},raf=null,frame=0,done=[];
+const cv=document.getElementById("c"),ctx=cv.getContext("2d");
+cv.width=CW;cv.height=CH;
+
+function speak(t){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="en-US";u.rate=0.82;u.pitch=1.1;speechSynthesis.speak(u);}
+function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function repeatWord(){if(G.target)speak(G.target.en);}
+
+function buildMap(){
+  const grid=document.getElementById("map-grid");grid.innerHTML="";
+  PHASES.forEach((p,i)=>{
+    const unlocked=i===0||done.includes(i-1),dn=done.includes(i);
+    const d=document.createElement("div");
+    d.className="map-node"+(unlocked?" unlocked":"")+(dn?" done":"");
+    d.innerHTML=`<span class="ni">${dn?"✅":unlocked?p.icon:"🔒"}</span><span class="nl">${p.label}</span><span class="ns">${p.title}</span>`;
+    if(unlocked){d.onclick=()=>openPhase(i);}
+    grid.appendChild(d);
+  });
+  document.getElementById("map-wrap").style.display="flex";
+}
+
+function openPhase(idx){
+  document.getElementById("map-wrap").style.display="none";
+  const p=PHASES[idx];G.phaseIdx=idx;
+  document.getElementById("ps-icon").textContent=p.icon;
+  document.getElementById("ps-num").textContent=p.label+" — "+p.semantic;
+  document.getElementById("ps-title").textContent=p.title;
+  document.getElementById("ps-desc").textContent=p.desc+" | Habilidade: "+p.skill;
+  const wd=document.getElementById("ps-words");wd.innerHTML="";
+  p.words.slice(0,5).forEach(w=>{
+    const s=document.createElement("div");
+    s.style.cssText="background:"+w.color+";color:"+w.tc+";border-radius:8px;padding:4px 8px;font-size:10px;font-weight:700;text-align:left;line-height:1.4";
+    s.innerHTML=(w.em?w.em+" ":"")+w.en+"<br><span style='opacity:.75;font-weight:400'>"+w.pt+"</span><br><span style='font-style:italic;font-size:9px;opacity:.7'>"+w.ipa+"</span>";
+    wd.appendChild(s);
+  });
+  document.getElementById("phase-s").style.display="flex";
+}
+
+function startPhase(){
+  document.getElementById("phase-s").style.display="none";
+  document.getElementById("h-phase").textContent=PHASES[G.phaseIdx].label+" "+PHASES[G.phaseIdx].icon;
+  document.getElementById("hud").style.display="flex";
+  document.getElementById("mission").style.display="block";
+  G.phase=PHASES[G.phaseIdx];G.blocks=[];G.particles=[];G.correct=0;G.lives=3;G.missed=0;
+  G.basket={x:CW/2-BKFW/2,y:CH-68};
+  frame=0;updateHUD();pickTarget();
+  if(raf)cancelAnimationFrame(raf);
+  G.running=true;loop();
+}
+
+function pickTarget(){
+  G.target=rnd(G.phase.words);
+  document.getElementById("m-text").textContent='🎯 Pegue: "'+G.target.en+'" — '+G.target.pt;
+  setTimeout(()=>speak(G.target.en),300);
+}
+
+function spawnBlock(){
+  const isCorrect=Math.random()<0.35;
+  const pool=G.phase.words.filter(w=>w.en!==G.target.en);
+  const word=isCorrect?G.target:rnd(pool);
+  G.blocks.push({x:Math.random()*(CW-BW-10)+5,y:-BH-10,w:BW,h:BH,word,correct:word.en===G.target.en,vy:G.phase.speed+(Math.random()*.7),wobble:Math.random()*Math.PI*2,alpha:1,scale:1,hit:false});
+}
+
+function spawnParticles(x,y,ok){
+  for(let i=0;i<14;i++){const a=Math.random()*Math.PI*2,s=2.5+Math.random()*4.5;G.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,life:1,color:ok?"#69f0ae":"#ff5252",r:3+Math.random()*5});}
+}
+
+function updateHUD(){
+  document.getElementById("h-score").textContent="⭐ "+(G.score||0);
+  document.getElementById("h-lives").textContent="❤".repeat(Math.max(0,G.lives))+"🖤".repeat(Math.max(0,3-G.lives));
+  document.getElementById("h-prog").textContent=G.correct+"/"+(G.phase?G.phase.needed:8);
+}
+
+function drr(x,y,w,h,r,fill,stroke,sw){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw||2;ctx.stroke();}
+}
+
+function hexRgb(h){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return r+","+g+","+b;}
+
+function drawBlock(b){
+  ctx.save();const cx=b.x+b.w/2,cy=b.y+b.h/2;
+  ctx.translate(cx,cy);ctx.scale(b.scale,b.scale);ctx.globalAlpha=b.alpha;ctx.translate(-b.w/2,-b.h/2);
+  drr(0,0,b.w,b.h,BR,"rgba("+hexRgb(b.word.color)+",.95)","rgba(255,255,255,.35)",2);
+  drr(2,2,b.w-4,14,4,"rgba(255,255,255,.18)",null);
+  ctx.fillStyle=b.word.tc;ctx.font="bold 14px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText((b.word.em?b.word.em+" ":"")+b.word.en,b.w/2,b.h/2-7,b.w-8);
+  ctx.font="10px sans-serif";ctx.fillStyle=b.word.tc==="fff"?"rgba(255,255,255,.75)":"rgba(0,0,0,.55)";
+  ctx.fillText(b.word.pt,b.w/2,b.h/2+8,b.w-8);
+  ctx.font="italic 9px sans-serif";ctx.fillStyle=b.word.tc==="fff"?"rgba(255,255,255,.55)":"rgba(0,0,0,.4)";
+  ctx.fillText(b.word.ipa,b.w/2,b.h/2+20,b.w-8);
+  ctx.restore();
+}
+
+function drawBasket(){
+  const bx=G.basket.x,by=G.basket.y,bw=BKFW,bh=BKFH;
+  ctx.save();drr(bx,by,bw,bh,8,"rgba(101,67,33,.9)","#c8a45a",2.5);
+  ctx.fillStyle="#8B5E3C";
+  for(let i=0;i<4;i++)drr(bx+10+(i*(bw-20)/3),by+4,6,bh-10,3,"rgba(200,164,90,.3)",null);
+  drr(bx+4,by+2,bw-8,8,4,"rgba(255,220,100,.2)",null);
+  ctx.font="20px serif";ctx.textAlign="center";ctx.fillText("🧺",bx+bw/2,by+bh-2);
+  ctx.restore();
+}
+
+function drawBg(){
+  ctx.fillStyle="#0d0700";ctx.fillRect(0,0,CW,CH);
+  ctx.fillStyle="rgba(255,240,180,.8)";
+  [[40,30,1],[120,15,1.5],[230,40,1],[350,20,1.2],[480,35,1],[560,18,1.5],[80,80,1],[300,70,1],[520,65,1.2]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle="#150800";ctx.fillRect(0,CH-55,CW,55);
+  ctx.fillStyle="#1f0e00";
+  [[0,40],[85,50],[170,35],[255,45],[340,30],[425,48],[510,38],[595,42]].forEach(([x,h])=>ctx.fillRect(x,CH-55,78,h-20));
+  ctx.fillStyle="#2a1500";ctx.fillRect(0,CH-24,CW,24);
+  ctx.fillStyle="#3d2000";ctx.fillRect(0,CH-24,CW,3);
+}
+
+function loop(){
+  if(!G.running)return;frame++;
+  if(frame%G.phase.spawn===0)spawnBlock();
+  const bk=G.basket;
+  if(keys["ArrowLeft"]||keys["a"])bk.x=Math.max(0,bk.x-7);
+  if(keys["ArrowRight"]||keys["d"])bk.x=Math.min(CW-BKFW,bk.x+7);
+  for(let i=G.blocks.length-1;i>=0;i--){
+    const b=G.blocks[i];
+    if(b.hit){b.scale*=.85;b.alpha*=.8;if(b.alpha<.05)G.blocks.splice(i,1);continue;}
+    b.y+=b.vy;b.wobble+=0.035;b.x+=Math.sin(b.wobble)*.25;
+    const bottom=b.y+b.h,cx=b.x+b.w/2;
+    if(bottom>=bk.y&&bottom<=bk.y+b.vy+12&&cx>=bk.x&&cx<=bk.x+BKFW){
+      speak(b.word.en);b.hit=true;
+      if(b.correct){spawnParticles(cx,bk.y,true);G.score=(G.score||0)+15+G.lives*3;G.correct++;updateHUD();if(G.correct>=G.phase.needed){G.running=false;setTimeout(()=>phaseWin(),600);}else setTimeout(()=>pickTarget(),200);}
+      else{spawnParticles(cx,bk.y,false);G.lives--;updateHUD();if(G.lives<=0){G.running=false;setTimeout(()=>showOver(),500);}}
+    }else if(b.y>CH){
+      if(b.correct){G.missed++;if(G.missed>=4){G.lives--;G.missed=0;updateHUD();if(G.lives<=0){G.running=false;setTimeout(()=>showOver(),400);break;}}G.blocks.splice(i,1);setTimeout(()=>pickTarget(),100);}
+      else G.blocks.splice(i,1);
+    }
+  }
+  for(let i=G.particles.length-1;i>=0;i--){const pt=G.particles[i];pt.x+=pt.vx;pt.y+=pt.vy;pt.vy+=.18;pt.life-=.04;pt.r*=.96;if(pt.life<=0)G.particles.splice(i,1);}
+  drawBg();
+  G.blocks.forEach(drawBlock);
+  ctx.fillStyle="#0d0700";ctx.fillRect(0,CH-24,CW,24);
+  drawBasket();
+  G.particles.forEach(pt=>{ctx.save();ctx.globalAlpha=pt.life;ctx.fillStyle=pt.color;ctx.beginPath();ctx.arc(pt.x,pt.y,pt.r,0,Math.PI*2);ctx.fill();ctx.restore();});
+  raf=requestAnimationFrame(loop);
+}
+
+function phaseWin(){
+  hideScreens();const idx=G.phaseIdx;if(!done.includes(idx))done.push(idx);
+  document.getElementById("pw-icon").textContent=PHASES[idx].icon;
+  document.getElementById("pw-title").textContent=PHASES[idx].title+" — Concluída!";
+  document.getElementById("pw-stars").textContent=(G.score||0)>150?"⭐⭐⭐":(G.score||0)>80?"⭐⭐":"⭐";
+  document.getElementById("pw-msg").textContent="Você aprendeu: "+PHASES[idx].semantic+"! Pontos: "+(G.score||0);
+  document.getElementById("phase-win-s").style.display="flex";hideHUD();
+}
+
+function showOver(){hideScreens();hideHUD();document.getElementById("over-s").style.display="flex";}
+function showWin(){
+  hideScreens();hideHUD();
+  const s=(G.score||0)>300?"⭐⭐⭐":(G.score||0)>150?"⭐⭐":"⭐";
+  document.getElementById("ws-stars").textContent=s;
+  document.getElementById("ws-msg").textContent="Pontuação final: "+(G.score||0)+" pontos! Parabéns, você completou todas as 6 fases!";
+  document.getElementById("win-s").style.display="flex";
+  speak("Congratulations! You are a Master Explorer!");
+}
+function hideHUD(){document.getElementById("hud").style.display="none";document.getElementById("mission").style.display="none";}
+function hideScreens(){["phase-s","phase-win-s","win-s","over-s","map-wrap"].forEach(id=>document.getElementById(id).style.display="none");}
+
+document.getElementById("start-btn").onclick=()=>{G={score:0};done=[];document.getElementById("start-s").style.display="none";buildMap();};
+document.getElementById("phase-btn").onclick=()=>startPhase();
+document.getElementById("pw-btn").onclick=()=>{document.getElementById("phase-win-s").style.display="none";if(done.length>=PHASES.length)showWin();else buildMap();};
+document.getElementById("win-btn").onclick=()=>{G={score:0};done=[];document.getElementById("win-s").style.display="none";buildMap();};
+document.getElementById("over-btn").onclick=()=>{document.getElementById("over-s").style.display="none";openPhase(G.phaseIdx);};
+
+document.addEventListener("keydown",e=>{keys[e.key]=true;if(e.key.startsWith("Arrow"))e.preventDefault();});
+document.addEventListener("keyup",e=>{keys[e.key]=false;});
+
+let touchX=null;
+cv.addEventListener("touchstart",e=>{touchX=e.touches[0].clientX;},{passive:true});
+cv.addEventListener("touchmove",e=>{
+  if(!G.running||touchX===null)return;
+  const dx=e.touches[0].clientX-touchX;
+  G.basket.x=Math.max(0,Math.min(CW-BKFW,G.basket.x+dx*1.6));
+  touchX=e.touches[0].clientX;
+},{passive:true});
+cv.addEventListener("click",e=>{
+  if(!G.running)return;
+  const rect=cv.getBoundingClientRect(),mx=(e.clientX-rect.left)*(CW/rect.width);
+  if(mx<CW/2)keys["ArrowLeft"]=true,setTimeout(()=>keys["ArrowLeft"]=false,110);
+  else keys["ArrowRight"]=true,setTimeout(()=>keys["ArrowRight"]=false,110);
+  if(G.target)speak(G.target.en);
+});
+</script>
+</body>
+</html>
