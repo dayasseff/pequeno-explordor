@@ -45,7 +45,7 @@ canvas{display:block;width:100%}
     </div>
     <div id="mission" style="display:none" onclick="repeatWord()">
       <span id="m-text">...</span>
-      <small>Pegue os blocos que caem! Toque para ouvir a palavra</small>
+      <small id="mission-hint">Pegue os blocos que caem! Toque para ouvir a palavra</small>
     </div>
   </div>
   <canvas id="c"></canvas>
@@ -270,7 +270,7 @@ function startPhase(){
   document.getElementById("h-phase").textContent=PHASES[G.phaseIdx].label+" "+PHASES[G.phaseIdx].icon;
   document.getElementById("hud").style.display="flex";
   document.getElementById("mission").style.display="block";
-  G.phase=PHASES[G.phaseIdx];G.blocks=[];G.particles=[];G.correct=0;G.lives=3;G.missed=0;G.score=G.score||0;
+  G.phase=PHASES[G.phaseIdx];G.blocks=[];G.particles=[];G.correct=0;G.lives=3;G.missed=0;G.colorErrors=0;G.score=G.score||0;
   G.basket={x:CW/2-BKFW/2,y:CH-68};
   frame=0;updateHUD();pickTarget();
   if(raf)cancelAnimationFrame(raf);
@@ -282,21 +282,31 @@ function pickTarget(){
   const ramp=(G.correct||0)*(G.phase.finale?0.28:0.18);
   const spd=G.phase.speed+ramp;
   const lvlLabel=spd<2.5?"Devagar":spd<3.5?"Normal":spd<4.5?"Rapido":spd<5.5?"Muito Rapido":"Veloz!";
-  document.getElementById("m-text").textContent='🎯 Pegue qualquer bloco! Ouça: "'+G.target.en+'" ('+G.target.pt+') — '+lvlLabel;
+  const isColorPhase=G.phaseIdx===0;
+  const missionPrefix=isColorPhase?'🎨 Pegue a cor certa! ':'🎯 Pegue qualquer bloco! ';
+  const missionSuffix=isColorPhase?' — 2 erros = ❤️':'';
+  document.getElementById("m-text").textContent=missionPrefix+'Ouça: "'+G.target.en+'" ('+G.target.pt+') — '+lvlLabel+missionSuffix;
+  const hint=document.getElementById('mission-hint');
+  if(hint)hint.textContent=isColorPhase?'Pegue só a cor anunciada! Cor errada 2x = perde coração':'Pegue os blocos que caem! Toque para ouvir a palavra';
   setTimeout(()=>speak(G.target.en),300);
 }
 
 function spawnBlock(){
-  // Speed ramp: each correct catch adds 0.18 px/frame (fase 6: 0.28)
   const ramp=(G.correct||0)*(G.phase.finale?0.28:0.18);
   const currentSpeed=G.phase.speed+ramp;
-  // Every block on screen is catchable and scores a point.
-  // We still label blocks so the player knows what to listen for,
-  // but catching ANY block counts. Mix: ~55% show the current target word,
-  // rest show random words from the phase pool (still catchable).
   const pool=G.phase.words;
-  const word=Math.random()<0.55?G.target:rnd(pool);
-  G.blocks.push({x:Math.random()*(CW-BW-10)+5,y:-BH-10,w:BW,h:BH,word,correct:true,vy:currentSpeed+(Math.random()*.6),wobble:Math.random()*Math.PI*2,alpha:1,scale:1,hit:false});
+  const isColorPhase=G.phaseIdx===0;
+  let word,isTargetBlock;
+  if(isColorPhase){
+    isTargetBlock=Math.random()<0.60;
+    const others=pool.filter(w=>w.en!==G.target.en);
+    word=isTargetBlock?G.target:(others.length?rnd(others):G.target);
+    if(!word)word=G.target;
+  }else{
+    word=Math.random()<0.55?G.target:rnd(pool);
+    isTargetBlock=true;
+  }
+  G.blocks.push({x:Math.random()*(CW-BW-10)+5,y:-BH-10,w:BW,h:BH,word,isTarget:isTargetBlock,vy:currentSpeed+(Math.random()*.6),wobble:Math.random()*Math.PI*2,alpha:1,scale:1,hit:false});
 }
 
 function spawnParticles(x,y,ok){
@@ -305,7 +315,9 @@ function spawnParticles(x,y,ok){
 
 function updateHUD(){
   document.getElementById("h-score").textContent="⭐ "+(G.score||0);
-  document.getElementById("h-lives").textContent="❤".repeat(Math.max(0,G.lives))+"🖤".repeat(Math.max(0,3-G.lives));
+  let livesStr="❤".repeat(Math.max(0,G.lives))+"🖤".repeat(Math.max(0,3-G.lives));
+  if(G.phaseIdx===0&&(G.colorErrors||0)>0)livesStr+=" ⚠️x"+(G.colorErrors||0);
+  document.getElementById("h-lives").textContent=livesStr;
   document.getElementById("h-prog").textContent=G.correct+"/"+(G.phase?G.phase.needed:8);
 }
 
@@ -323,9 +335,9 @@ function drawBlock(b){
   drr(2,2,b.w-4,14,4,"rgba(255,255,255,.18)",null);
   ctx.fillStyle=b.word.tc;ctx.font="bold 14px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
   ctx.fillText((b.word.em?b.word.em+" ":"")+b.word.en,b.w/2,b.h/2-7,b.w-8);
-  ctx.font="10px sans-serif";ctx.fillStyle=b.word.tc==="fff"?"rgba(255,255,255,.75)":"rgba(0,0,0,.55)";
+  ctx.font="10px sans-serif";ctx.fillStyle=b.word.tc==="#fff"?"rgba(255,255,255,.75)":"rgba(0,0,0,.55)";
   ctx.fillText(b.word.pt,b.w/2,b.h/2+8,b.w-8);
-  ctx.font="italic 9px sans-serif";ctx.fillStyle=b.word.tc==="fff"?"rgba(255,255,255,.55)":"rgba(0,0,0,.4)";
+  ctx.font="italic 9px sans-serif";ctx.fillStyle=b.word.tc==="#fff"?"rgba(255,255,255,.55)":"rgba(0,0,0,.4)";
   ctx.fillText(b.word.ipa,b.w/2,b.h/2+20,b.w-8);
   ctx.restore();
 }
@@ -477,13 +489,22 @@ function loop(){
     const bottom=b.y+b.h,cx=b.x+b.w/2;
     if(bottom>=bk.y&&bottom<=bk.y+b.vy+12&&cx>=bk.x&&cx<=bk.x+BKFW){
       speak(b.word.en);b.hit=true;
-      // Every caught block scores +1
-      spawnParticles(cx,bk.y,true);
-      G.score=(G.score||0)+10;
-      G.correct++;
-      updateHUD();
-      if(G.correct>=G.phase.needed){G.running=false;setTimeout(()=>phaseWin(),600);}
-      else pickTarget();
+      const isColorPhase=G.phaseIdx===0;
+      if(isColorPhase&&!b.isTarget){
+        // Wrong color caught — 2 errors = lose 1 life
+        spawnParticles(cx,bk.y,false);
+        G.colorErrors=(G.colorErrors||0)+1;
+        if(G.colorErrors>=2){G.lives--;G.colorErrors=0;updateHUD();if(G.lives<=0){G.running=false;setTimeout(()=>showOver(),400);break;}}
+        else updateHUD();
+      }else{
+        // Correct catch
+        spawnParticles(cx,bk.y,true);
+        G.score=(G.score||0)+10;
+        G.correct++;
+        updateHUD();
+        if(G.correct>=G.phase.needed){G.running=false;setTimeout(()=>phaseWin(),600);}
+        else pickTarget();
+      }
     }else if(b.y>CH){
       // Block fell past basket — lose a life
       G.missed=(G.missed||0)+1;
