@@ -45,7 +45,7 @@ canvas{display:block;width:100%}
     </div>
     <div id="mission" style="display:none" onclick="repeatWord()">
       <span id="m-text">...</span>
-      <small>Toque aqui para ouvir novamente</small>
+      <small>Pegue os blocos que caem! Toque para ouvir a palavra</small>
     </div>
   </div>
   <canvas id="c"></canvas>
@@ -54,7 +54,7 @@ canvas{display:block;width:100%}
     <div class="panel">
       <div style="font-size:52px;margin-bottom:6px">🧭</div>
       <h2>Pequeno Explorador Quest</h2>
-      <p>Uma aventura com <strong style="color:#FFD700">6 fases</strong> para aprender inglês!<br>Blocos com palavras caem do céu — mova o cesto e pegue apenas o bloco certo.<br><br>Use <strong style="color:#FFD700">← →</strong> ou toque na tela para mover.</p>
+      <p>Uma aventura com <strong style="color:#FFD700">6 fases</strong> para aprender inglês!<br>Blocos com palavras caem do céu — mova o cesto e pegue os blocos! A cada acerto a velocidade aumenta. Chegue a 10 acertos para avançar!<br><br>Use <strong style="color:#FFD700">← →</strong> ou toque na tela para mover.</p>
       <div style="margin-bottom:1rem;display:flex;flex-wrap:wrap;justify-content:center;gap:4px">
         <span class="ptag" style="background:#c0392b22;color:#ff8a80;border-color:#c0392b">🎨 Cores</span>
         <span class="ptag" style="background:#1a237e22;color:#82b1ff;border-color:#1a237e">🔤 Letras</span>
@@ -270,7 +270,7 @@ function startPhase(){
   document.getElementById("h-phase").textContent=PHASES[G.phaseIdx].label+" "+PHASES[G.phaseIdx].icon;
   document.getElementById("hud").style.display="flex";
   document.getElementById("mission").style.display="block";
-  G.phase=PHASES[G.phaseIdx];G.blocks=[];G.particles=[];G.correct=0;G.lives=3;G.missed=0;
+  G.phase=PHASES[G.phaseIdx];G.blocks=[];G.particles=[];G.correct=0;G.lives=3;G.missed=0;G.score=G.score||0;
   G.basket={x:CW/2-BKFW/2,y:CH-68};
   frame=0;updateHUD();pickTarget();
   if(raf)cancelAnimationFrame(raf);
@@ -279,16 +279,24 @@ function startPhase(){
 
 function pickTarget(){
   G.target=rnd(G.phase.words);
-  document.getElementById("m-text").textContent='🎯 Pegue: "'+G.target.en+'" — '+G.target.pt;
+  const ramp=(G.correct||0)*(G.phase.finale?0.28:0.18);
+  const spd=G.phase.speed+ramp;
+  const lvlLabel=spd<2.5?"Devagar":spd<3.5?"Normal":spd<4.5?"Rapido":spd<5.5?"Muito Rapido":"Veloz!";
+  document.getElementById("m-text").textContent='🎯 Pegue qualquer bloco! Ouça: "'+G.target.en+'" ('+G.target.pt+') — '+lvlLabel;
   setTimeout(()=>speak(G.target.en),300);
 }
 
 function spawnBlock(){
-  const isCorrect=Math.random()<0.35;
-  const pool=G.phase.words.filter(w=>w.en!==G.target.en);
-  const word=isCorrect?G.target:rnd(pool);
-  const finaleBoost=G.phase.finale?(G.correct/G.phase.needed)*1.8:0;
-  G.blocks.push({x:Math.random()*(CW-BW-10)+5,y:-BH-10,w:BW,h:BH,word,correct:word.en===G.target.en,vy:G.phase.speed+finaleBoost+(Math.random()*.7),wobble:Math.random()*Math.PI*2,alpha:1,scale:1,hit:false});
+  // Speed ramp: each correct catch adds 0.18 px/frame (fase 6: 0.28)
+  const ramp=(G.correct||0)*(G.phase.finale?0.28:0.18);
+  const currentSpeed=G.phase.speed+ramp;
+  // Every block on screen is catchable and scores a point.
+  // We still label blocks so the player knows what to listen for,
+  // but catching ANY block counts. Mix: ~55% show the current target word,
+  // rest show random words from the phase pool (still catchable).
+  const pool=G.phase.words;
+  const word=Math.random()<0.55?G.target:rnd(pool);
+  G.blocks.push({x:Math.random()*(CW-BW-10)+5,y:-BH-10,w:BW,h:BH,word,correct:true,vy:currentSpeed+(Math.random()*.6),wobble:Math.random()*Math.PI*2,alpha:1,scale:1,hit:false});
 }
 
 function spawnParticles(x,y,ok){
@@ -457,7 +465,8 @@ function drawBg(){
 
 function loop(){
   if(!G.running)return;frame++;
-  if(frame%G.phase.spawn===0)spawnBlock();
+  const dynSpawn=Math.max(18,G.phase.spawn-Math.floor((G.correct||0)*2.2));
+  if(frame%dynSpawn===0)spawnBlock();
   const bk=G.basket;
   if(keys["ArrowLeft"]||keys["a"])bk.x=Math.max(0,bk.x-7);
   if(keys["ArrowRight"]||keys["d"])bk.x=Math.min(CW-BKFW,bk.x+7);
@@ -468,11 +477,19 @@ function loop(){
     const bottom=b.y+b.h,cx=b.x+b.w/2;
     if(bottom>=bk.y&&bottom<=bk.y+b.vy+12&&cx>=bk.x&&cx<=bk.x+BKFW){
       speak(b.word.en);b.hit=true;
-      if(b.correct){spawnParticles(cx,bk.y,true);G.score=(G.score||0)+15+G.lives*3;G.correct++;updateHUD();if(G.correct>=G.phase.needed){G.running=false;setTimeout(()=>phaseWin(),600);}else setTimeout(()=>pickTarget(),200);}
-      else{spawnParticles(cx,bk.y,false);G.lives--;updateHUD();if(G.lives<=0){G.running=false;setTimeout(()=>showOver(),500);}}
+      // Every caught block scores +1
+      spawnParticles(cx,bk.y,true);
+      G.score=(G.score||0)+10;
+      G.correct++;
+      updateHUD();
+      if(G.correct>=G.phase.needed){G.running=false;setTimeout(()=>phaseWin(),600);}
+      else pickTarget();
     }else if(b.y>CH){
-      if(b.correct){G.missed++;if(G.missed>=4){G.lives--;G.missed=0;updateHUD();if(G.lives<=0){G.running=false;setTimeout(()=>showOver(),400);break;}}G.blocks.splice(i,1);setTimeout(()=>pickTarget(),100);}
-      else G.blocks.splice(i,1);
+      // Block fell past basket — lose a life
+      G.missed=(G.missed||0)+1;
+      if(G.missed>=3){G.lives--;G.missed=0;updateHUD();if(G.lives<=0){G.running=false;setTimeout(()=>showOver(),400);break;}}
+      G.blocks.splice(i,1);
+      pickTarget();
     }
   }
   for(let i=G.particles.length-1;i>=0;i--){const pt=G.particles[i];pt.x+=pt.vx;pt.y+=pt.vy;pt.vy+=.18;pt.life-=.04;pt.r*=.96;if(pt.life<=0)G.particles.splice(i,1);}
