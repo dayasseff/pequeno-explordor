@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pequeno Explorador Quest</title>
+<title>Pequeno Explorador Quest - Versão Aventura</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif}
 body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:10px}
@@ -54,7 +54,7 @@ canvas{display:block;width:100%}
     <div class="panel">
       <div style="font-size:52px;margin-bottom:6px">🧭</div>
       <h2>Pequeno Explorador Quest</h2>
-      <p>Uma aventura com <strong style="color:#FFD700">6 fases</strong> para aprender inglês!<br>Blocos com palavras caem do céu — mova o cesto e pegue os blocos! A cada acerto a velocidade aumenta. Chegue a 10 acertos para avançar!<br><br>Use <strong style="color:#FFD700">← →</strong> ou toque na tela para mover.</p>
+      <p>Uma aventura com <strong style="color:#FFD700">6 fases</strong> para aprender inglês!<br>Blocos com palavras caem do céu — mova o cesto e pegue os blocos! A cada acerto a velocidade aumenta. Chegue a 6 acertos para avançar (15 na última)!<br><br>Use <strong style="color:#FFD700">← →</strong> ou toque na tela para mover.</p>
       <div style="margin-bottom:1rem;display:flex;flex-wrap:wrap;justify-content:center;gap:4px">
         <span class="ptag" style="background:#c0392b22;color:#ff8a80;border-color:#c0392b">🎨 Cores</span>
         <span class="ptag" style="background:#1a237e22;color:#82b1ff;border-color:#1a237e">🔤 Letras</span>
@@ -122,7 +122,7 @@ const PHASES=[
   {id:1,icon:"🌈",label:"Fase 1",title:"Portal das Cores",
    desc:"Associação visual: veja a cor e aprenda a palavra em inglês!",
    semantic:"Abstração Visual",skill:"Associação Objeto-Cor",
-   speed:1.7,spawn:95,needed:10,
+   speed:1.7,spawn:95,needed:6,
    words:[
     {en:"Red",pt:"Vermelho",ipa:"/rɛd/",ex:"The apple is red.",color:"#E53935",tc:"#fff"},
     {en:"Blue",pt:"Azul",ipa:"/bluː/",ex:"The sky is blue.",color:"#1E88E5",tc:"#fff"},
@@ -138,7 +138,7 @@ const PHASES=[
   {id:2,icon:"🔤",label:"Fase 2",title:"Mundo das Letras",
    desc:"Fonética básica: as vogais são as engrenagens da pronúncia!",
    semantic:"Fonética Básica",skill:"Consciência Fonológica e IPA",
-   speed:2.1,spawn:82,needed:10,
+   speed:2.1,spawn:82,needed:6,
    words:[
     {en:"A",pt:"Vogal A",ipa:"/eɪ/",ex:"A is for Apple!",color:"#c62828",tc:"#fff"},
     {en:"E",pt:"Vogal E",ipa:"/iː/",ex:"E is for Elephant!",color:"#1565c0",tc:"#fff"},
@@ -154,7 +154,7 @@ const PHASES=[
   {id:3,icon:"🔢",label:"Fase 3",title:"Contagem Mágica",
    desc:"Lógica sequencial com ritmo musical! Memorize os números!",
    semantic:"Lógica Sequencial",skill:"Memorização Rítmica e Escalada",
-   speed:2.5,spawn:70,needed:10,
+   speed:2.5,spawn:70,needed:6,
    words:[
     {en:"One",pt:"Um",ipa:"/wʌn/",ex:"I have one book.",color:"#c62828",tc:"#fff"},
     {en:"Two",pt:"Dois",ipa:"/tuː/",ex:"I have two cats.",color:"#1565c0",tc:"#fff"},
@@ -170,7 +170,7 @@ const PHASES=[
   {id:4,icon:"🐾",label:"Fase 4",title:"Expedição Animal",
    desc:"Taxonomia ambiental: explore o mundo vivo com os animais!",
    semantic:"Taxonomia Ambiental",skill:"Categorização e Nomenclatura",
-   speed:3.0,spawn:60,needed:10,
+   speed:3.0,spawn:60,needed:6,
    words:[
     {en:"Dog",pt:"Cachorro",ipa:"/dɒɡ/",ex:"The dog is barking.",color:"#8d6e63",tc:"#fff",em:"🐶"},
     {en:"Cat",pt:"Gato",ipa:"/kæt/",ex:"The cat is sleeping.",color:"#78909c",tc:"#fff",em:"🐱"},
@@ -186,7 +186,7 @@ const PHASES=[
   {id:5,icon:"🧸",label:"Fase 5",title:"Baú de Objetos",
    desc:"Categorize objetos do seu mundo: Casa, Escola e Brinquedos!",
    semantic:"Taxonomia Ambiental",skill:"Categorização e Nomenclatura",
-   speed:3.4,spawn:52,needed:10,
+   speed:3.4,spawn:52,needed:6,
    words:[
     {en:"Table",pt:"Mesa",ipa:"/ˈteɪbəl/",ex:"The table is in the kitchen.",color:"#5d4037",tc:"#fff",em:"🪑"},
     {en:"Bed",pt:"Cama",ipa:"/bɛd/",ex:"I sleep in my bed.",color:"#7b1fa2",tc:"#fff",em:"🛏️"},
@@ -199,7 +199,7 @@ const PHASES=[
     {en:"Chair",pt:"Cadeira",ipa:"/tʃɛr/",ex:"Sit on the chair!",color:"#4e342e",tc:"#fff",em:"🪑"},
     {en:"Cup",pt:"Xícara",ipa:"/kʌp/",ex:"A cup of tea.",color:"#00695c",tc:"#fff",em:"☕"},
    ]},
-  {id:6,icon:"💬",label:"Fase 6",title:"Acampamento de Conversação",
+  {id:6,icon:"🧙",label:"Fase 6",title:"Acampamento do Guardião",
    desc:"Desafio final! Blocos mais rápidos — prove que você é um Mestre Explorador!",
    semantic:"Socialização Prática",skill:"Aplicação Sintática Contextual",
    speed:4.5,spawn:32,needed:15,finale:true,
@@ -250,7 +250,7 @@ function openPhase(idx){
   document.getElementById("ps-num").textContent=p.label+" — "+p.semantic;
   document.getElementById("ps-num").style.background=p.finale?"#b8860b":"#8B6914";
   document.getElementById("ps-title").textContent=p.title;
-  document.getElementById("ps-desc").textContent=p.desc+(p.finale?" | Habilidade: "+p.skill:""+"");
+  document.getElementById("ps-desc").textContent=p.desc+(p.finale?" | Habilidade: "+p.skill:"");
   let ni=document.getElementById("ps-needed");
   if(!ni){ni=document.createElement("p");ni.id="ps-needed";ni.style.cssText="font-size:13px;font-weight:700;margin:-4px 0 8px";document.getElementById("ps-words").before(ni);}
   ni.style.color=p.finale?"#FFD700":"#b8e85a";
@@ -283,11 +283,11 @@ function pickTarget(){
   const spd=G.phase.speed+ramp;
   const lvlLabel=spd<2.5?"Devagar":spd<3.5?"Normal":spd<4.5?"Rapido":spd<5.5?"Muito Rapido":"Veloz!";
   const isColorPhase=G.phaseIdx===0;
-  const missionPrefix=isColorPhase?'🎨 Pegue a cor certa! ':'🎯 Pegue qualquer bloco! ';
-  const missionSuffix=isColorPhase?' — 2 erros = ❤️':'';
+  const missionPrefix=isColorPhase?'🎨 Pegue APENAS a cor certa! ':'🎯 Pegue qualquer bloco! ';
+  const missionSuffix=isColorPhase?' — ERRO = ❤️ PERDIDA': '';
   document.getElementById("m-text").textContent=missionPrefix+'Ouça: "'+G.target.en+'" ('+G.target.pt+') — '+lvlLabel+missionSuffix;
   const hint=document.getElementById('mission-hint');
-  if(hint)hint.textContent=isColorPhase?'Pegue só a cor anunciada! Cor errada 2x = perde coração':'Pegue os blocos que caem! Toque para ouvir a palavra';
+  if(hint)hint.textContent=isColorPhase?'❌ Pegar cor errada = perde 1 vida! A cor continua a mesma até acertar! ✓':'Pegue os blocos que caem! Toque para ouvir a palavra';
   setTimeout(()=>speak(G.target.en),300);
 }
 
@@ -298,10 +298,16 @@ function spawnBlock(){
   const isColorPhase=G.phaseIdx===0;
   let word,isTargetBlock;
   if(isColorPhase){
-    isTargetBlock=Math.random()<0.60;
-    const others=pool.filter(w=>w.en!==G.target.en);
-    word=isTargetBlock?G.target:(others.length?rnd(others):G.target);
-    if(!word)word=G.target;
+    // Na fase das cores, sempre spawna blocos que podem ser a cor certa ou errada
+    const isTargetBlockSpawn = Math.random() < 0.55; // 55% chance de ser a cor certa
+    if(isTargetBlockSpawn){
+      word = G.target;
+      isTargetBlock = true;
+    } else {
+      const others = pool.filter(w => w.en !== G.target.en);
+      word = others.length ? rnd(others) : G.target;
+      isTargetBlock = false;
+    }
   }else{
     word=Math.random()<0.55?G.target:rnd(pool);
     isTargetBlock=true;
@@ -316,7 +322,6 @@ function spawnParticles(x,y,ok){
 function updateHUD(){
   document.getElementById("h-score").textContent="⭐ "+(G.score||0);
   let livesStr="❤".repeat(Math.max(0,G.lives))+"🖤".repeat(Math.max(0,3-G.lives));
-  if(G.phaseIdx===0&&(G.colorErrors||0)>0)livesStr+=" ⚠️x"+(G.colorErrors||0);
   document.getElementById("h-lives").textContent=livesStr;
   document.getElementById("h-prog").textContent=G.correct+"/"+(G.phase?G.phase.needed:8);
 }
@@ -349,6 +354,73 @@ function drawBasket(){
   for(let i=0;i<4;i++)drr(bx+10+(i*(bw-20)/3),by+4,6,bh-10,3,"rgba(200,164,90,.3)",null);
   drr(bx+4,by+2,bw-8,8,4,"rgba(255,220,100,.2)",null);
   ctx.font="20px serif";ctx.textAlign="center";ctx.fillText("🧺",bx+bw/2,by+bh-2);
+  ctx.restore();
+}
+
+function drawExplorerBack(){
+  const x = CW - 68;
+  const y = CH - 85;
+  
+  ctx.save();
+  
+  ctx.fillStyle = "#5D8A3C";
+  ctx.beginPath();
+  ctx.ellipse(x, y-12, 14, 20, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  ctx.fillStyle = "#8B5A2B";
+  ctx.fillRect(x-8, y-6, 16, 8);
+  
+  ctx.fillStyle = "#A0522D";
+  ctx.beginPath();
+  ctx.ellipse(x+4, y-16, 10, 16, -0.2, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = "#D2691E";
+  ctx.fillRect(x, y-22, 6, 12);
+  
+  ctx.fillStyle = "#FDBCB4";
+  ctx.beginPath();
+  ctx.ellipse(x, y-28, 9, 10, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  ctx.fillStyle = "#8B6914";
+  ctx.beginPath();
+  ctx.ellipse(x, y-37, 14, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = "#DAA520";
+  ctx.beginPath();
+  ctx.ellipse(x, y-38, 8, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  ctx.fillStyle = "#B8860B";
+  ctx.beginPath();
+  ctx.moveTo(x-5, y-41);
+  ctx.lineTo(x, y-48);
+  ctx.lineTo(x+5, y-41);
+  ctx.fill();
+  
+  ctx.fillStyle = "#5D8A3C";
+  ctx.fillRect(x-14, y-20, 8, 14);
+  ctx.fillRect(x+6, y-20, 8, 14);
+  
+  ctx.beginPath();
+  ctx.moveTo(x+12, y-28);
+  ctx.lineTo(x+20, y-12);
+  ctx.lineTo(x+18, y-10);
+  ctx.lineTo(x+10, y-26);
+  ctx.fillStyle = "#8B5A2B";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x+19, y-14);
+  ctx.lineTo(x+24, y-6);
+  ctx.lineTo(x+22, y-4);
+  ctx.lineTo(x+17, y-12);
+  ctx.fill();
+  
+  ctx.fillStyle = "#3E2723";
+  ctx.fillRect(x-8, y-2, 6, 6);
+  ctx.fillRect(x+2, y-2, 6, 6);
+  
   ctx.restore();
 }
 
@@ -460,6 +532,10 @@ function drawBg(){
   drawTent(490,CH-62,80);
 
   drawCampfire(CW/2+8,CH-58);
+  
+  if(G.phaseIdx === 5 && G.running){
+    drawExplorerBack();
+  }
 
   const ft=frame*0.05;
   FLIES.forEach((f,i)=>{
@@ -487,32 +563,54 @@ function loop(){
     if(b.hit){b.scale*=.85;b.alpha*=.8;if(b.alpha<.05)G.blocks.splice(i,1);continue;}
     b.y+=b.vy;b.wobble+=0.035;b.x+=Math.sin(b.wobble)*.25;
     const bottom=b.y+b.h,cx=b.x+b.w/2;
-    // Colisão: fundo do bloco entre o topo e o fundo da cesta, e X dentro da cesta
     const inBasketX=cx>=bk.x+4&&cx<=bk.x+BKFW-4;
     const inBasketY=bottom>=bk.y&&bottom<=bk.y+BKFH;
     if(inBasketX&&inBasketY){
       b.hit=true;
       speak(b.word.en);
       const isColorPhase=G.phaseIdx===0;
-      if(isColorPhase&&!b.isTarget){
-        // Cor errada — 2 erros = perde 1 vida
+      if(isColorPhase && !b.isTarget){
+        // COR ERROU: perde 1 vida IMEDIATAMENTE
         spawnParticles(cx,bk.y,false);
-        G.colorErrors=(G.colorErrors||0)+1;
-        if(G.colorErrors>=2){G.lives--;G.colorErrors=0;updateHUD();if(G.lives<=0){G.running=false;setTimeout(()=>showOver(),400);break;}}
-        else updateHUD();
+        G.lives--;
+        updateHUD();
+        if(G.lives<=0){
+          G.running=false;
+          setTimeout(()=>showOver(),400);
+          break;
+        }
+        // NÃO MUDA O TARGET - continua pedindo a mesma cor!
+        // Apenas mostra uma mensagem de erro
+        const hint=document.getElementById('mission-hint');
+        if(hint)hint.style.animation='none';
+        setTimeout(()=>{
+          if(hint)hint.style.animation='';
+        },100);
       }else{
-        // Acerto correto
+        // ACERTOU (pode ser cor certa na fase 1, ou qualquer bloco nas outras fases)
         spawnParticles(cx,bk.y,true);
         G.score=(G.score||0)+10;
         G.correct++;
         updateHUD();
-        if(G.correct>=G.phase.needed){G.running=false;setTimeout(()=>phaseWin(),600);}
-        else pickTarget();
+        if(G.correct>=G.phase.needed){
+          G.running=false;
+          setTimeout(()=>phaseWin(),600);
+        } else {
+          pickTarget(); // Só muda o target após acertar
+        }
       }
     }else if(b.y>CH+BH){
-      // Bloco passou da tela — conta como miss (mas NÃO chama pickTarget aqui)
       G.missed=(G.missed||0)+1;
-      if(G.missed>=3){G.lives--;G.missed=0;updateHUD();if(G.lives<=0){G.running=false;setTimeout(()=>showOver(),400);break;}}
+      if(G.missed>=3){
+        G.lives--; 
+        G.missed=0;
+        updateHUD();
+        if(G.lives<=0){
+          G.running=false;
+          setTimeout(()=>showOver(),400);
+          break;
+        }
+      }
       G.blocks.splice(i,1);
     }
   }
